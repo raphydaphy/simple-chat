@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+  <title>Simple Chat</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Patrick+Hand" rel="stylesheet"> 
+
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="./socket.io/socket.io.js"></script>
+
+  <style>
+  	/* Larger font to suit the cursive style */
+		body {
+			font-family: 'Patrick Hand', cursive;
+			background-color: #2d3436;
+			color: #2d3436;
+			font-size: 120%;
+		}
+
+		h1 {
+			font-size: 150%;
+		}
+
+		/* Centered area with limited size and top border */
+		.container {
+			background-color: #dfe6e9;
+			margin: 50px auto;
+			width: 650px;
+			padding: 30px;
+			border-top: solid;
+			border-color: #636e72;
+			border-width: 10px;
+		}
+
+		/* Thicker and lighter fieldset border */
+		fieldset {
+			border-color: #2d3436;
+			border-width: 2px;
+		}
+
+		/* Remove link styling and adjust color to fit */
+		a {
+			text-decoration: none;
+			color: #74b9ff;
+		}
+
+		a:visited {
+			color: #6c5ce7;
+		}
+
+		a:hover {
+			color: #0984e3;
+		}
+
+		a:active {
+			color: #ff7675;
+		}
+  </style>
+
+  <script>
+  	var socket = io("http://localhost:3000");
+  	var userId;
+
+ 		/**
+ 		 * User {
+		 *   id: hash
+		 *   name: string
+ 		 * }
+ 		 **/
+  	var users = {};
+
+		socket.on("init", function(data) {
+		  jQuery("#userId").text("User ID: " + data.userId);
+		  jQuery("#name").val(data.userName);
+		  userId = data.userId;
+		  users = data.userArray;
+		  addJoinedMsg(userId);
+		});
+
+		socket.on("userJoined", function(data) {
+			users[data.userId] = {
+				id: data.userId,
+				name: data.userName
+			};
+			addJoinedMsg(data.userId);
+		})
+
+		socket.on("chatMessage", function(data) {
+			addMessage(data.userId, data.body, data.isSystemMsg);
+		});
+
+		socket.on("changeUsername", function(data) {
+			addUsernameMsg(data.userId, data.name);
+			users[data.userId].name = data.name;
+		})
+
+		socket.on("userLeft", function(data) {
+			addMessage(data.userId, "left the chat", true);
+			delete users[data.userId];
+		})
+
+		window.addEventListener("beforeunload", (event) => {
+			socket.emit("userLeft", {
+				userId: userId
+			});
+			alert("goodbye!");
+		});
+
+		function sendMessage() {
+			var message = jQuery("#message").val();
+			if (message.length > 0) {
+				socket.emit("sendMessage", {
+					userId: userId,
+					body: message,
+					isSystemMsg: false
+				});
+				jQuery("#message").val("");
+				addMessage(userId, message, false);
+			}
+		}
+
+		function updateProfile() {
+			var name = jQuery("#name").val();
+			if (name.length > 0) {
+				socket.emit("changeUsername", {
+					userId: userId,
+					name: name
+				});
+				addUsernameMsg(userId, name);
+				users[userId].name = name;
+			}
+		}
+
+		function addMessage(userId, body, isSystemMsg) {
+			var msg = body;
+			var userName = users[userId].name;
+
+			if (isSystemMsg) {
+				msg = "<i>" + userName + " " + msg + "</i>";
+			} else {
+				msg = userName + ": " + msg;
+			}
+
+			jQuery("#message-history").append("<p>" + msg + "</p>")
+		}
+
+		function addUsernameMsg(userId, name) {
+			addMessage(userId, "changed their nickname to " + name, true);
+		}
+
+		function addJoinedMsg(userId) {
+			addMessage(userId, "joined the chat", true);
+		}
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Simple Chat</h1>
+    <fieldset legend="Profile">
+    	<legend>Profile</legend>
+    	<div id="userId">User ID: </div>
+    	Name: <input id="name" /><br />
+    	<a href="javascript:updateProfile()">Update Profile</a>
+    </fieldset>
+
+    <p><b>Messages</b></p>
+    <div id="message-history"></div>
+
+    <input type="text" id="message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</body>
+</html>
