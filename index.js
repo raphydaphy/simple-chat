@@ -172,7 +172,8 @@ io.on("connection", function(socket) {
         });
       }
     }
-    delete users[data.userId];
+    // Keeping the user in the array allows chat history to persist
+    // delete users[data.userId];
   });
 });
 

@@ -78,10 +78,10 @@
 		  userId = data.userId;
 		  users = data.userArray;
 
+		  console.log(data.messageArray);
+
 		  for (var msg in data.messageArray) {
-		  	if (msg.id != undefined) {
-		  		addMessage(msg);
-		  	}
+		  	addMessage(data.messageArray[msg]);
 		  }
 		});
 
@@ -118,7 +118,8 @@
 
 		socket.on("userLeft", function(data) {
 			addMessage(data.message);
-			delete users[data.userId];
+			// Since the user is not deleted on the server, they should be kept here too
+			// delete users[data.userId];
 		});
 
 		window.addEventListener("beforeunload", (event) => {
@@ -167,6 +168,10 @@
 		}
 
 		function addMessage(msg) {
+			if (!users.hasOwnProperty(msg.userId)) {
+				console.warn("Tried to add message from invalid user " + msg.userId, msg);
+				return;
+			}
 			var format = msg.content;
 			var userName = users[msg.userId].name;
 
