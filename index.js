@@ -19,6 +19,16 @@ var io = require("socket.io")(http);
  **/
 var users = {}
 
+/**
+ * Message {
+ *   id: hash
+ *   userId: hash
+ *   content: string
+ *   likes: hash[]
+ * }
+ **/
+var messages = {}
+
 // generate a random ID with 64 bits of entropy
 function makeId() {
   var result = "";
@@ -29,14 +39,28 @@ function makeId() {
   return result;
 }
 
+function createMessage(userId, content, isSystemMsg) {
+  var messageId = makeId();
+  while (messages.hasOwnProperty(messageId)) {
+    messageId = makeId();
+  }
+
+  var message = {
+    id: messageId,
+    userId: userId,
+    content: content,
+    isSystemMsg: isSystemMsg,
+    likes: []
+  };
+
+  messages[messageId] = message;
+  return message;
+}
+
 function broadcastMessage(message, except=null) {
   for (var user in users) {
     if (user != except) {
-      users[user].socket.emit("chatMessage", {
-        userId: message.userId,
-        body: message.body,
-        isSystemMsg: message.isSystemMsg
-      });
+      users[user].socket.emit("chatMessage", message);
     }
   }
 }
@@ -73,6 +97,7 @@ io.on("connection", function(socket) {
     socket: socket
   };
 
+  var joinedMsg = createMessage(userId, "joined the chat", true);
   var clientUsers = {};
 
   for (var user in users) {
@@ -84,7 +109,8 @@ io.on("connection", function(socket) {
     if (user != userId) {
       users[user].socket.emit("userJoined", {
         userId: userId,
-        userName: userName
+        userName: userName,
+        message: joinedMsg
       });
     }
   }
@@ -92,41 +118,57 @@ io.on("connection", function(socket) {
   socket.emit("init", {
     userId: userId,
     userName: userName,
-    userArray: clientUsers
+    userArray: clientUsers,
+    messageArray: messages
   });
 
   console.log("User " + userId + " connected and assigned the name " + userName);
 
   socket.on("sendMessage", function(data) {
-    var sender = data.userId;
-    var body = data.body;
+    if (!users.hasOwnProperty(data.userId)) {
+      console.warn("Recieved message from invalid userId " + data.userId + ": " + data.content);
+      return;
+    }
+    var message = createMessage(data.userId, data.content, data.isSystemMsg);
+    broadcastMessage(message, data.userId);
 
-    broadcastMessage(data, userId);
+    users[data.userId].socket.emit("sendSuccess", {
+      msgId: message.id,
+      tempId: data.tempId
+    });
   });
 
   socket.on("changeUsername", function(data) {
-    var user = data.userId;
+    if (!users.hasOwnProperty(data.userId)) {
+      console.warn("Non-existant user " + data.userId + " tried to change name to " + data.name);
+      return;
+    }
     var name = data.name;
+    var message = createMessage(data.userId, "changed their nickname to " + name, true);
 
-    users[user].name = name;
+    users[data.userId].name = name;
 
-    for (var u in users) {
-      if (u != user) {
-        users[u].socket.emit("changeUsername", {
-          userId: user,
-          name: name
-        });
-      }
+    for (var user in users) {
+      users[user].socket.emit("changeUsername", {
+        userId: data.userId,
+        name: name,
+        message: message
+      });
     }
   });
 
   socket.on("userLeft", function(data) {
-    var user = data.userId;
+    if (!users.hasOwnProperty(data.userId)) {
+      console.warn("Non-existant user " + data.userId + " tried to leave the chat");
+      return;
+    }
+    var message = createMessage(data.userId, "left the chat", true);
 
-    for (var u in users) {
-      if (u != user) {
-        users[u].socket.emit("userLeft", {
-          userId: user
+    for (var user in users) {
+      if (user != data.userId) {
+        users[user].socket.emit("userLeft", {
+          userId: data.userId,
+          message: message
         });
       }
     }

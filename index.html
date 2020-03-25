@@ -9,52 +9,30 @@
   <script src="./socket.io/socket.io.js"></script>
 
   <style>
-  	/* Larger font to suit the cursive style */
-		body {
-			font-family: 'Patrick Hand', cursive;
-			background-color: #2d3436;
-			color: #2d3436;
-			font-size: 120%;
-		}
+  	body {
+  		margin: 0;
+  		background-color: #313233;
+  	}
 
-		h1 {
-			font-size: 150%;
-		}
+  	#main-page {
+  		width: 100% - 360px;
+  	}
 
-		/* Centered area with limited size and top border */
-		.container {
-			background-color: #dfe6e9;
-			margin: 50px auto;
-			width: 650px;
-			padding: 30px;
-			border-top: solid;
-			border-color: #636e72;
-			border-width: 10px;
-		}
+  	#chat-container {
+  		width: 360px;
+  		height: 100%;
+  		position: absolute;
+  		top: 0;
+  		right: 0;
+  		bottom: 0;
+  		padding: 16px;
+  		z-index: 9999999999;
+  		background-color: #edeff0;
+  	}
 
-		/* Thicker and lighter fieldset border */
-		fieldset {
-			border-color: #2d3436;
-			border-width: 2px;
-		}
-
-		/* Remove link styling and adjust color to fit */
-		a {
-			text-decoration: none;
-			color: #74b9ff;
-		}
-
-		a:visited {
-			color: #6c5ce7;
-		}
-
-		a:hover {
-			color: #0984e3;
-		}
-
-		a:active {
-			color: #ff7675;
-		}
+  	.outgoing {
+  		color: #850523;
+  	}
   </style>
 
   <script>
@@ -69,12 +47,42 @@
  		 **/
   	var users = {};
 
+  	/**
+		 * Message {
+		 *   id: hash
+		 *   userId: hash
+		 *   content: string
+		 *   likes: hash[]
+		 * }
+		 **/
+		 var messages = {};
+
+  	/**
+  	 * The same as messages, but these haven't been sent yet
+	   **/
+  	var outgoingMessages = {};
+
+  	// From index.js
+		function makeId() {
+		  var result = "";
+		  var hexChars = "0123456789abcdef";
+		  for (var i = 0; i < 16; i += 1) {
+		    result += hexChars[Math.floor(Math.random() * 16)];
+		  }
+		  return result;
+		}
+
 		socket.on("init", function(data) {
 		  jQuery("#userId").text("User ID: " + data.userId);
 		  jQuery("#name").val(data.userName);
 		  userId = data.userId;
 		  users = data.userArray;
-		  addJoinedMsg(userId);
+
+		  for (var msg in data.messageArray) {
+		  	if (msg.id != undefined) {
+		  		addMessage(msg);
+		  	}
+		  }
 		});
 
 		socket.on("userJoined", function(data) {
@@ -82,22 +90,36 @@
 				id: data.userId,
 				name: data.userName
 			};
-			addJoinedMsg(data.userId);
-		})
+			addMessage(data.message);
+		});
 
-		socket.on("chatMessage", function(data) {
-			addMessage(data.userId, data.body, data.isSystemMsg);
+		socket.on("chatMessage", function(msg) {
+			addMessage(msg);
+		});
+
+		socket.on("sendSuccess", function(data) {
+			var tempId = data.tempId;
+			var msg = outgoingMessages[tempId];
+			messages[data.msgId] = {
+				id: data.msgId, 
+				userId: msg.userId, 
+				content: msg.content, 
+				isSystemMsg: message.isSystemMsg
+			};
+			jQuery("#outgoing-" + tempId).removeClass("outgoing");
+			jQuery("#outgoing-" + tempId).removeAttr("id");
+			delete outgoingMessages[tempId];
 		});
 
 		socket.on("changeUsername", function(data) {
-			addUsernameMsg(data.userId, data.name);
+			addMessage(data.message);
 			users[data.userId].name = data.name;
-		})
+		});
 
 		socket.on("userLeft", function(data) {
-			addMessage(data.userId, "left the chat", true);
+			addMessage(data.message);
 			delete users[data.userId];
-		})
+		});
 
 		window.addEventListener("beforeunload", (event) => {
 			socket.emit("userLeft", {
@@ -107,15 +129,30 @@
 		});
 
 		function sendMessage() {
-			var message = jQuery("#message").val();
-			if (message.length > 0) {
+			var content = jQuery("#message").val();
+			if (content.length > 0) {
+				var tempId = makeId();
+				while(outgoingMessages.hasOwnProperty(tempId)) {
+					tempId = makeId();
+				}
+
+				outgoingMessages[tempId] = {
+					id: tempId,
+					userId: userId,
+					content: content,
+					isSystemMsg: false
+				}
+
 				socket.emit("sendMessage", {
 					userId: userId,
-					body: message,
-					isSystemMsg: false
+					content: content,
+					isSystemMsg: false,
+					tempId: tempId
 				});
 				jQuery("#message").val("");
-				addMessage(userId, message, false);
+
+				var msg = users[userId].name + ": " + content;
+				jQuery("#message-history").append("<p class='outgoing' id='outgoing-" + tempId + "'>" + msg + "</p>");
 			}
 		}
 
@@ -126,35 +163,27 @@
 					userId: userId,
 					name: name
 				});
-				addUsernameMsg(userId, name);
-				users[userId].name = name;
 			}
 		}
 
-		function addMessage(userId, body, isSystemMsg) {
-			var msg = body;
-			var userName = users[userId].name;
+		function addMessage(msg) {
+			var format = msg.content;
+			var userName = users[msg.userId].name;
 
-			if (isSystemMsg) {
-				msg = "<i>" + userName + " " + msg + "</i>";
+			if (msg.isSystemMsg) {
+				format = "<i>" + userName + " " + format + "</i>";
 			} else {
-				msg = userName + ": " + msg;
+				format = userName + ": " + format;
 			}
 
-			jQuery("#message-history").append("<p>" + msg + "</p>")
-		}
-
-		function addUsernameMsg(userId, name) {
-			addMessage(userId, "changed their nickname to " + name, true);
-		}
-
-		function addJoinedMsg(userId) {
-			addMessage(userId, "joined the chat", true);
+			jQuery("#message-history").append("<p>" + format + "</p>");
+			messages[msg.id] = msg;
 		}
   </script>
 </head>
 <body>
-  <div class="container">
+	<div id="main-page"></div>
+  <div id="chat-container">
     <h1>Simple Chat</h1>
     <fieldset legend="Profile">
     	<legend>Profile</legend>
