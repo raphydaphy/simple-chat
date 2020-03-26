@@ -20,6 +20,8 @@ const date = new Date();
  * User {
  *   id: hash
  *   name: string
+ *   typing: boolean
+ *   active: boolean
  *   socket: <websocket>
  * }
  **/
@@ -102,6 +104,8 @@ io.on("connection", function(socket) {
   users[userId] = {
     id: userId,
     name: userName,
+    typing: false,
+    active: true,
     socket: socket
   };
 
@@ -133,80 +137,88 @@ io.on("connection", function(socket) {
   console.log("User " + userId + " connected and assigned the name " + userName);
 
   socket.on("sendMessage", function(data, callback) {
-    if (!users.hasOwnProperty(data.userId)) {
-      console.warn("Recieved message from invalid userId " + data.userId + ": " + data.content);
-      return;
-    }
-    var message = createMessage(data.userId, data.content, data.isSystemMsg);
+    var message = createMessage(userId, data.content, data.isSystemMsg);
     broadcastMessage(message);
 
     callback();
   });
 
   socket.on("likeMessage", function(data) {
-    if (!users.hasOwnProperty(data.userId)) {
-      console.warn("Recieved like from invalud userId " + data.userId + " for message with id " + data.msgId);
-      return;
-    } else if (!messages.hasOwnProperty(data.msgId)) {
-      console.warn("User " + data.userId + " tried to like invalid message " + data.msgId);
+    if (!messages.hasOwnProperty(data.msgId)) {
+      console.warn("User " + userId + " tried to like invalid message " + data.msgId);
       return;
     }
     var timestamp = date.getTime();
     var msg = messages[data.msgId];
-    if (msg.likes.hasOwnProperty(data.userId)) {
-      var name = users[data.userId].name;
+    if (msg.likes.hasOwnProperty(userId)) {
+      var name = users[userId].name;
       console.log("User " + name + " tried to like a message they had already liked (with " + Object.keys(msg.likes).length + ") total likes", msg.likes);
       return;
     }
-    msg.likes[data.userId] = {
-      userId: data.userId,
+    msg.likes[userId] = {
+      userId: userId,
       timestamp: timestamp
     };
     for (var user in users) {
       users[user].socket.emit("likeMessage", {
         msgId: data.msgId,
-        userId: data.userId,
+        userId: userId,
         timestamp: timestamp
       });
     }
   });
 
-  socket.on("changeUsername", function(data) {
-    if (!users.hasOwnProperty(data.userId)) {
-      console.warn("Non-existant user " + data.userId + " tried to change name to " + data.name);
-      return;
+  socket.on("typing", function(data) {
+    users[userId].typing = data.typing;
+    for (var user in users) {
+      if (user != userId) {
+        users[user].socket.emit("typing", {
+          userId: userId,
+          typing: data.typing
+        });
+      }
     }
-    var name = data.name;
-    var message = createMessage(data.userId, "changed their nickname to " + name, true);
+  })
 
-    users[data.userId].name = name;
+  socket.on("changeUsername", function(data) {
+    var name = data.name;
+    var message = createMessage(userId, "changed their nickname to " + name, true);
+
+    users[userId].name = name;
 
     for (var user in users) {
       users[user].socket.emit("changeUsername", {
-        userId: data.userId,
+        userId: userId,
         name: name,
         message: message
       });
     }
   });
 
-  socket.on("userLeft", function(data) {
-    if (!users.hasOwnProperty(data.userId)) {
-      console.warn("Non-existant user " + data.userId + " tried to leave the chat");
-      return;
-    }
-    var message = createMessage(data.userId, "left the chat", true);
+  socket.on("userLeft", function() {
+    var message = createMessage(userId, "left the chat", true);
+
+    users[userId].active = false;
+    var anyoneOnline = false;
 
     for (var user in users) {
-      if (user != data.userId) {
-        users[user].socket.emit("userLeft", {
-          userId: data.userId,
+      if (user != userId) {
+        var userObj = users[user];
+        if (userObj.active) {
+          anyoneOnline = true;
+        }
+        userObj.socket.emit("userLeft", {
+          userId: userId,
           message: message
         });
       }
     }
-    // Keeping the user in the array allows chat history to persist
-    // delete users[data.userId];
+
+    if (!anyoneOnline) {
+      messages = {};
+      users = {};
+      console.log("All users have left. Resetting chat...");
+    }
   });
 });
 

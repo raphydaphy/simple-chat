@@ -6,6 +6,28 @@ body {
   width: 100%;
 }
 
+#chat-wrapper {
+  width: 288px;
+  height: 100%;
+  background: #1a1a1a;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  cursor: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  z-index: 9999999999;
+}
+
+#chat-wrapper #chat-container {
+  // width: 228px;
+  height: 100%;
+  position: relative;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+}
 
 @import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900");
 /* line 34, ../sass/base/_settings.scss */
@@ -413,6 +435,42 @@ button:hover {
   font-style: italic;
   color: #757575;
 }
+
+/********************
+ * Patreon Container
+ *******************/
+/* line 154, ../sass/modules/_msg.scss */
+#patreon-container {
+  width: 100%;
+  padding-top: 16px;
+}
+/* line 157, ../sass/modules/_msg.scss */
+#patreon-container #patreon-link {
+  display: flex;
+  flex-flow: wrap row;
+  align-items: center;
+}
+/* line 160, ../sass/modules/_msg.scss */
+#patreon-container #patreon-link:hover {
+  cursor: pointer;
+}
+/* line 163, ../sass/modules/_msg.scss */
+#patreon-container #patreon-link p {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #949494;
+  width: 40%;
+}
+/* line 168, ../sass/modules/_msg.scss */
+#patreon-container #patreon-link img {
+  border-radius: 20px;
+  width: 60%;
+}
+
+/************************
+ * End Patreon Container
+ ************************/
 
 /* line 3, ../sass/modules/_setting.scss */
 #setting-edit {

@@ -1,5 +1,6 @@
 var socket = io("http://localhost:3000");
 var userId;
+var typingTimer = null;
 
 /**
  * User {
@@ -71,6 +72,22 @@ socket.on("likeMessage", function(data) {
 
   var msgDiv = jQuery("#msg-" + msg.id).children(".msg-txt").first();
   var likesDiv = getOrCreateLikesDiv(msg.id);
+  var heart = likesDiv.children(".icon-heart").first();
+  var heartIcon = heart.children(".icon").first().children(".fa-heart").first();
+  if (msg.likes.hasOwnProperty(userId)) {
+    heart.addClass("heart-full");
+    heart.removeClass("heart-empty");
+
+    heartIcon.addClass("fas");
+    heartIcon.removeClass("far");
+  } else {
+    heart.addClass("heart-empty");
+    heart.removeClass("heart-full");
+
+    heartIcon.addClass("far");
+    heartIcon.removeClass("fas");
+  }
+
   // TODO: profile icons
   var userIcon = "DeadPool";
   likesDiv.first().append(`
@@ -80,6 +97,30 @@ socket.on("likeMessage", function(data) {
       </div>
     </div>
   `);
+  jQuery("#chat-history").scrollTop(jQuery("#chat-history").prop("scrollHeight"));
+});
+
+socket.on("typing", function(data) {
+  if (!users.hasOwnProperty(data.userId)) {
+    console.warn("Tried to update typing status for unknown user " + data.userId);
+    return;
+  }
+  users[data.userId].typing = data.typing;
+  var typingUsers = [];
+  for (var user in users) {
+    if (users[user].typing) {
+      typingUsers.push(user);
+    }
+  }
+  var typingMsg = typingUsers.length + " people are typing...";
+  if (typingUsers.length == 2) {
+    typingMsg = users[typingUsers[0]].name + " and " + users[typingUsers[1]].name + " are typing...";
+  } else if (typingUsers.length == 1) {
+    typingMsg = users[typingUsers[0]].name + " is typing...";
+  } else if (typingUsers.length == 0) {
+    typingMsg = "<br />";
+  }
+  jQuery("#presence-indicator").html(typingMsg);
 });
 
 socket.on("changeUsername", function(data) {
@@ -94,9 +135,7 @@ socket.on("userLeft", function(data) {
 });
 
 window.addEventListener("beforeunload", (event) => {
-  socket.emit("userLeft", {
-    userId: userId
-  });
+  socket.emit("userLeft");
 });
 
 /****************
@@ -109,17 +148,16 @@ jQuery("#chat-input").keyup(function(e) {
   if (e.which === 13) {
     var content = jQuery("#chat-input").val().replace(/^\s+|\s+$/g, "");
     if (content !== "") {
-      /* TODO: typing indicator
       if (typingTimer !== null) {
         clearTimeout(typingTimer);
         typingTimer = null;
-        socket.emit("typing", { typing: false }, function() {});
+        socket.emit("typing", {
+          typing: false
+        });
       }
-      */
       
       jQuery("#chat-input").prop("disabled", true);
       socket.emit("sendMessage", {
-        userId: userId,
         content: content,
         isSystemMsg: false
       }, function() {
@@ -127,31 +165,29 @@ jQuery("#chat-input").keyup(function(e) {
       });
     }
   } else {
-    /* TODO: typing indicator
     if (typingTimer === null) {
-      socket.emit("typing", { typing: true }, function() {});
+      socket.emit("typing", { 
+        typing: true 
+      });
     } else {
       clearTimeout(typingTimer);
     }
     typingTimer = setTimeout(function() {
       typingTimer = null;
-      socket.emit("typing", { typing: false }, function() {});
+      socket.emit("typing", { 
+        typing: false 
+      });
     }, 500);
-    */
   }
 });
 
-jQuery('#link-icon').click(e => {
-  console.log("linkIcon button clicked");
-
-  var currVideoUrl = window.location.href.split('?')[0];
+jQuery("#link-icon").click(e => {
+  var currVideoUrl = window.location.href.split("?")[0];
   // TODO: session id
   var partySessionId = makeId();
   if(currVideoUrl && partySessionId) {
     var urlWithSessionId = currVideoUrl + "?npSessionId=" + encodeURIComponent(partySessionId);
     console.log(urlWithSessionId);
-    // jQuery('#share-url').val(urlWithSessionId).focus().select();
-
     const el = document.createElement("textarea");
     el.value = urlWithSessionId;
     document.body.appendChild(el);
@@ -162,23 +198,20 @@ jQuery('#link-icon').click(e => {
   }
 });
 
-jQuery('.user-icon').click(e => {
-  console.log('userIcon button clicked');
+jQuery(".user-icon").click(e => {
   jQuery("#chat-icon-container").show();
   jQuery(".chat-settings-container").hide();
 });
 
-jQuery('#user-icon').click(e => {
-  console.log("userIcon button clicked");
+jQuery("#user-icon").click(e => {
   toggleIconContainer();
 });
 
 jQuery(".btns button").click(e => {
-  var nicknameText = jQuery(".nickname-input input").val().replace(/^\s+|\s+$/g, '');
-  if(nicknameText != '') {
+  var nicknameText = jQuery(".nickname-input input").val().replace(/^\s+|\s+$/g, "");
+  if(nicknameText != "") {
     console.log("saveChanges button clicked: " + nicknameText);
     socket.emit("changeUsername", {
-      userId: userId,
       name: nicknameText
     });
   }
@@ -189,19 +222,21 @@ jQuery(".btns button").click(e => {
  * Functions
  ************/
 function toggleIconContainer() {
- if(jQuery("#chat-icon-container").data('active')) {
-    jQuery("#chat-icon-container").data('active', false);
+ if(jQuery("#chat-icon-container").data("active")) {
+    jQuery("#chat-icon-container").data("active", false);
     jQuery("#chat-icon-container").hide();
     jQuery(".chat-settings-container").hide();
     jQuery("#chat-history-container").show();
     jQuery("#chat-input-container").show();
+    jQuery("#patreon-container").show();
   } else {
-    jQuery("#chat-icon-container").data('active', true);
+    jQuery("#chat-icon-container").data("active", true);
     jQuery(".chat-settings-container").show();
     jQuery("#chat-icon-container").hide();
     jQuery("#chat-link-container").hide();
     jQuery("#chat-history-container").hide();
     jQuery("#chat-input-container").hide();
+    jQuery("#patreon-container").hide();
   }
 }
 
@@ -211,9 +246,9 @@ function getOrCreateLikesDiv(msgId) {
   if (likesDiv.length == 0) {
     msgDiv.append(`
       <div class="msg-likes">
-        <div class="icon-heart heart-full">
+        <div class="icon-heart">
           <div class="icon">
-            <i unselectable class="fas fa-heart"></i>
+            <i unselectable class="fa-heart"></i>
           </div>
         </div>
       </div>
@@ -224,10 +259,9 @@ function getOrCreateLikesDiv(msgId) {
 }
 
 function likeMessage(msg) {
-  if (!msg.likes.hasOwnProperty(userId)) {
+  if (!msg.likes.hasOwnProperty(userId) && !msg.isSystemMsg) {
     socket.emit("likeMessage", {
-      msgId: msg.id,
-      userId: userId
+      msgId: msg.id
     });
   }
 }
