@@ -1,0 +1,127 @@
+<!doctype html>
+<head>
+  <title>Simple Chat</title>
+  <link href="main.css" rel="stylesheet" type="text/css" />
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="./socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</head>
+<body>
+  <div id="main-page"></div>
+  <div id="notification-link" class="notification-links"></div>
+
+  <div id="chat-wrapper">
+    <div id="chat-container">
+
+      <div id="chat-header-container">
+
+        <ul id="chat-menu-container">
+          <li id="function-title">
+            <div id="title">
+              <h1>Netflix Party</h1>
+            </div>
+          </li>
+          <li id="function-user">
+            <div id="link-icon">
+              <!-- ${chrome.runtime.getURL("img/Link.svg")} -->
+              <img src='img/Link.svg'>
+              <input id="share-url" type="text" readonly="true" autocomplete="off" autofocus style="display:none;" />
+            </div>
+            <a id="user-icon">
+              <!-- getUserIconURL(userSettings.userId, userSettings.userIcon) -->
+              <img src='img/IceCream.svg'>
+            </a>
+          </li>
+        </ul>
+
+        <div id="chat-link-container" style='display:none;'>
+          <div id="chat-link">
+            <div id="chat-link-url">
+              <p>The url link goes here.</p>
+            </div>
+            <div id="chat-link-icon">
+              <!-- ${chrome.runtime.getURL("img/Link.svg")} -->
+              <img src='img/Link.svg'>
+            </div>
+          </div>
+        </div>
+
+        <div id="chat-icon-container" style="display:none">
+          <div id="icon-title-container">
+            <div id="icon-title">
+              <h2>Click to switch icon</h2>
+            </div>
+          </div>
+          <div id="icon-holder-container">
+            <div id="icon-holder-template">
+              <ul id="icon-holder">
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="setting-edit" class="chat-settings-container" style="display:none">
+
+        <div class="section-b">
+          <div class="section-b-inner section-inner">
+            <a class="user-icon">
+              <!-- ${getUserIconURL(userSettings.userId, userSettings.userIcon)} -->
+              <img src='img/IceCream.svg' />
+            </a>
+          </div>
+        </div>
+
+        <div class="section-c">
+          <div class="section-c-inner section-inner">
+            <div class="nickname-section row-wrap">
+              <div class="nickname-wrap row-one">
+                <h2>Nickname</h2>
+                <div class="np-btn">
+                  <a>
+                    <!--  ${chrome.runtime.getURL("img/edit.svg")} -->
+                    <img src='img/edit.svg' />
+                  </a>
+                </div>
+              </div>
+              <div class="nickname-input row-two">
+                <input id="nickname-edit" type="text" placeholder='${userSettings.userNickname ? userSettings.userNickname : "Add a nickname"}'/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="settings-save" class="chat-settings-container" style="display:none">
+        <div class="section-d">
+          <div class="section-d-inner section-inner">
+
+            <div class="btns">
+              <button>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="chat-history-container">
+        <div id="chat-header">
+          <h4>Chatroom</h4>
+        </div>
+        <!-- <div id="chat-gradient"></div> -->
+        <div id="chat-history">
+        </div>
+      </div>
+
+      <div id="presence-indicator">
+        <p>People are currently typing...</p>
+      </div>
+
+      <div id="chat-input-container">
+        <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off"></input>
+      </div>
+
+    </div>
+  </div>
+</body>

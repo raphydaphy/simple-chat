@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const fs = require("fs");
-const usernames = ["James", "Hannah", "Tracy", "Bob", "Troy", "George", "Eve"];
+const path = require("path");
 
 var http = require("http").createServer(app);
 var io = require("socket.io")(http);
@@ -9,6 +9,9 @@ var io = require("socket.io")(http);
 /****************************
  *  Utilities
  ****************************/
+
+// An array of default usernames
+const usernames = ["James", "Hannah", "Tracy", "Bob", "Troy", "George", "Eve"];
 
 /**
  * User {
@@ -70,18 +73,15 @@ function broadcastMessage(message, except=null) {
  ****************************/
 
 app.get("/", function(req, res) {
-  fs.readFile("./index.html", function(err, data) {
-    if (err) {
-      res.writeHead(500);
-      return res.end("Error loading index.html");
-    }
-    res.writeHead(200);
-    res.end(data);
-  });
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
+
+app.get("/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "public", req.path));
 });
 
 /****************************
- *  Socket Things
+ *  Message Handlers
  ****************************/
 
 io.on("connection", function(socket) {
@@ -130,12 +130,7 @@ io.on("connection", function(socket) {
       return;
     }
     var message = createMessage(data.userId, data.content, data.isSystemMsg);
-    broadcastMessage(message, data.userId);
-
-    users[data.userId].socket.emit("sendSuccess", {
-      msgId: message.id,
-      tempId: data.tempId
-    });
+    broadcastMessage(message);
   });
 
   socket.on("changeUsername", function(data) {
