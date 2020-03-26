@@ -70,25 +70,24 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 jQuery('#chat-input').keyup(function(e) {
-  console.log('hi');
   e.stopPropagation();
 
   // event keycode 13 is the enter key
   if (e.which === 13) {
     var content = jQuery('#chat-input').val().replace(/^\s+|\s+$/g, '');
     if (content !== '') {
+      /* TODO: typing indicator
       if (typingTimer !== null) {
-        /* TODO: typing indicator
         clearTimeout(typingTimer);
         typingTimer = null;
         socket.emit('typing', { typing: false }, function() {});
-        */
       }
+      */
       
       jQuery('#chat-input').prop('disabled', true);
       socket.emit('sendMessage', {
         userId: userId,
-        body: body,
+        content: content,
         isSystemMsg: false
       }, function() {
         jQuery('#chat-input').val('').prop('disabled', false).focus();

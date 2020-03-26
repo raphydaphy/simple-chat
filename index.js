@@ -124,13 +124,15 @@ io.on("connection", function(socket) {
 
   console.log("User " + userId + " connected and assigned the name " + userName);
 
-  socket.on("sendMessage", function(data) {
+  socket.on("sendMessage", function(data, callback) {
     if (!users.hasOwnProperty(data.userId)) {
       console.warn("Recieved message from invalid userId " + data.userId + ": " + data.content);
       return;
     }
     var message = createMessage(data.userId, data.content, data.isSystemMsg);
     broadcastMessage(message);
+
+    callback();
   });
 
   socket.on("changeUsername", function(data) {
