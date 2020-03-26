@@ -2,6 +2,9 @@ var socket = io("http://localhost:3000");
 var userId;
 var typingTimer = null;
 
+// All the profile icons with the extensions removed
+var icons = ["Batman", "DeadPool", "CptAmerica", "Wolverine", "IronMan", "Goofy", "Alien", "Mulan", "Snow-White", "Poohbear", "Sailormoon", "Sailor-Cat", "Pizza", "Cookie", "Chocobar", "hotdog", "Hamburger", "Popcorn", "IceCream", "ChickenLeg"];
+
 /**
  * User {
  *   id: hash
@@ -30,11 +33,41 @@ function makeId() {
   return result;
 }
 
+function changeIcon(icon) {
+  socket.emit("changeIcon", {
+    icon: icon
+  });
+
+  // This will cause the icon to be updated twice
+  // on the client which made the change
+  users[userId].icon = icon;
+  refreshIcon();
+  jQuery("#chat-icon-container").hide();
+  jQuery(".chat-settings-container").show();
+}
+
+function refreshIcon() {
+  var iconPath = "img/" + users[userId].icon + ".svg";
+  jQuery("#user-icon").children("img").attr("src", iconPath);
+  jQuery(".user-icon").children("img").attr("src", iconPath);
+}
+
+function createIconButton(i) {
+  var iconButton = jQuery("#icon-holder").append(`
+    <a class="image-button">
+      <img class="img-class" src="${"img/" + icons[i] + ".svg"}" id="user-icon-${icons[i]}">
+    </a>
+  `);
+
+  jQuery("#user-icon-" + icons[i]).click(e => {
+    changeIcon(icons[i]);
+  });
+}
+
 /*******************
  * Socket Callbacks
  *******************/
 socket.on("init", function(data) {
-  jQuery("#userId").text("User ID: " + data.userId);
   jQuery("#nickname-edit").val(data.userName);
   userId = data.userId;
   users = data.userArray;
@@ -42,12 +75,21 @@ socket.on("init", function(data) {
   for (var msg in data.messageArray) {
     addMessage(data.messageArray[msg]);
   }
+
+  for(var i =0; i < icons.length; i++) {
+    createIconButton(i);
+  }
+
+  refreshIcon();
 });
 
 socket.on("userJoined", function(data) {
   users[data.userId] = {
     id: data.userId,
-    name: data.userName
+    name: data.userName,
+    icon: data.userIcon,
+    typing: false,
+    active: true
   };
   addMessage(data.message);
 });
@@ -88,12 +130,10 @@ socket.on("likeMessage", function(data) {
     heartIcon.removeClass("fas");
   }
 
-  // TODO: profile icons
-  var userIcon = "DeadPool";
   likesDiv.first().append(`
     <div class="icon-heart">
       <div class="icon">
-        <img unselectable src="img/${userIcon}.svg">
+        <img unselectable src="img/${users[data.userId].icon}.svg">
       </div>
     </div>
   `);
@@ -127,6 +167,11 @@ socket.on("changeUsername", function(data) {
   addMessage(data.message);
   users[data.userId].name = data.name;
 });
+
+socket.on("changeIcon", function(data) {
+  addMessage(data.message);
+  users[data.userId].icon = data.icon;
+})
 
 socket.on("userLeft", function(data) {
   addMessage(data.message);
@@ -209,8 +254,7 @@ jQuery("#user-icon").click(e => {
 
 jQuery(".btns button").click(e => {
   var nicknameText = jQuery(".nickname-input input").val().replace(/^\s+|\s+$/g, "");
-  if(nicknameText != "") {
-    console.log("saveChanges button clicked: " + nicknameText);
+  if(nicknameText != "" && nicknameText != users[userId].name) {
     socket.emit("changeUsername", {
       name: nicknameText
     });
@@ -272,15 +316,13 @@ function addMessage(msg) {
     return;
   }
 
-  // TODO: user icons
-  var userIcon = "img/IronMan.svg";
   var userName = users[msg.userId].name;
 
   var format = jQuery(`
     <div class="msg-container" id="msg-${msg.id}">
       <div class="icon-name">
         <div class="icon">
-          <img unselectable src="${userIcon}">
+          <img unselectable src="${"img/" + users[msg.userId].icon + ".svg"}">
         </div>
       </div>
       <div class="msg-txt message${ msg.isSystemMsg ? "-system" : "-txt" }">

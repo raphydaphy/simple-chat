@@ -13,6 +13,9 @@ var io = require("socket.io")(http);
 // An array of default usernames
 const usernames = ["James", "Hannah", "Tracy", "Bob", "Troy", "George", "Eve"];
 
+// All the profile icons with the extensions removed
+var icons = ["Batman", "DeadPool", "CptAmerica", "Wolverine", "IronMan", "Goofy", "Alien", "Mulan", "Snow-White", "Poohbear", "Sailormoon", "Sailor-Cat", "Pizza", "Cookie", "Chocobar", "hotdog", "Hamburger", "Popcorn", "IceCream", "ChickenLeg"];
+
 // Used to create timestamps
 const date = new Date();
 
@@ -20,6 +23,7 @@ const date = new Date();
  * User {
  *   id: hash
  *   name: string
+ *   icon: string
  *   typing: boolean
  *   active: boolean
  *   socket: <websocket>
@@ -97,6 +101,7 @@ app.get("/*", function(req, res) {
 io.on("connection", function(socket) {
   var userId = makeId();
   var userName = usernames[Math.floor(Math.random() * usernames.length)];
+  var userIcon = icons[Math.floor(Math.random() * icons.length)];
   while (users.hasOwnProperty(userId)) {
     userId = makeId();
   }
@@ -104,6 +109,7 @@ io.on("connection", function(socket) {
   users[userId] = {
     id: userId,
     name: userName,
+    icon: userIcon,
     typing: false,
     active: true,
     socket: socket
@@ -115,13 +121,17 @@ io.on("connection", function(socket) {
   for (var user in users) {
     clientUsers[user] = {
       id: users[user].id,
-      name: users[user].name
+      name: users[user].name,
+      icon: users[user].icon,
+      typing: users[user].typing,
+      active: users[user].active
     };
 
     if (user != userId) {
       users[user].socket.emit("userJoined", {
         userId: userId,
         userName: userName,
+        userIcon: userIcon,
         message: joinedMsg
       });
     }
@@ -134,7 +144,7 @@ io.on("connection", function(socket) {
     messageArray: messages
   });
 
-  console.log("User " + userId + " connected and assigned the name " + userName);
+  console.log("User " + userId + " connected and assigned the name " + userName + " and icon " + userIcon);
 
   socket.on("sendMessage", function(data, callback) {
     var message = createMessage(userId, data.content, data.isSystemMsg);
@@ -181,15 +191,28 @@ io.on("connection", function(socket) {
   })
 
   socket.on("changeUsername", function(data) {
-    var name = data.name;
-    var message = createMessage(userId, "changed their nickname to " + name, true);
+    var message = createMessage(userId, "changed their nickname to " + data.name, true);
 
-    users[userId].name = name;
+    users[userId].name = data.name;
 
     for (var user in users) {
       users[user].socket.emit("changeUsername", {
         userId: userId,
-        name: name,
+        name: data.name,
+        message: message
+      });
+    }
+  });
+
+  socket.on("changeIcon", function(data) {
+    var message = createMessage(userId, "updated their profile picture", true);
+
+    users[userId].icon = data.icon;
+
+    for (var user in users) {
+      users[user].socket.emit("changeIcon", {
+        userId: userId,
+        icon: data.icon,
         message: message
       });
     }
