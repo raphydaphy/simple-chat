@@ -94,6 +94,33 @@ button:hover {
   color: #ef3e3a;
 }
 
+/*******************************
+ * Unselectable class for icons 
+ *******************************/
+.unselectable::selection {
+  color: transparent;
+  background: transparent;
+}
+.unselectable::-moz-selection {
+  color: transparent;
+  background: transparent;
+}
+.unselectable::-o-selection {
+  color: transparent;
+  background: transparent;
+}
+.unselectable::-ms-selection {
+  color: transparent;
+  background: transparent;
+}
+.unselectable::-webkit-selection {
+  color: transparent;
+  background: transparent;
+}
+/*******************
+ * End Unselectable
+ *******************/
+
 /* line 7, ../sass/layout/_chatlayout.scss */
 #chat-wrapper {
   width: 288px;

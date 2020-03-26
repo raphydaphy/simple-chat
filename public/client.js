@@ -55,7 +55,7 @@ function refreshIcon() {
 function createIconButton(i) {
   var iconButton = jQuery("#icon-holder").append(`
     <a class="image-button">
-      <img class="img-class" src="${"img/" + icons[i] + ".svg"}" id="user-icon-${icons[i]}">
+      <img class="unselectable img-class" src="${"img/" + icons[i] + ".svg"}" id="user-icon-${icons[i]}">
     </a>
   `);
 
@@ -99,45 +99,7 @@ socket.on("chatMessage", function(msg) {
 });
 
 socket.on("likeMessage", function(data) {
-  if (!users.hasOwnProperty(data.userId)) {
-    console.warn("Recieved like from unknown user " + data.userId + " for message with id " + data.msgId);
-    return;
-  } else if (!messages.hasOwnProperty(data.msgId)) {
-    console.warn("User " + data.userId + " tried to like unknown message " + data.msgId);
-    return;
-  }
-  var msg = messages[data.msgId];
-  msg.likes[data.userId] = {
-    userId: data.userId,
-    timestamp: data.timestamp
-  };
-
-  var msgDiv = jQuery("#msg-" + msg.id).children(".msg-txt").first();
-  var likesDiv = getOrCreateLikesDiv(msg.id);
-  var heart = likesDiv.children(".icon-heart").first();
-  var heartIcon = heart.children(".icon").first().children(".fa-heart").first();
-  if (msg.likes.hasOwnProperty(userId)) {
-    heart.addClass("heart-full");
-    heart.removeClass("heart-empty");
-
-    heartIcon.addClass("fas");
-    heartIcon.removeClass("far");
-  } else {
-    heart.addClass("heart-empty");
-    heart.removeClass("heart-full");
-
-    heartIcon.addClass("far");
-    heartIcon.removeClass("fas");
-  }
-
-  likesDiv.first().append(`
-    <div class="icon-heart">
-      <div class="icon">
-        <img unselectable src="img/${users[data.userId].icon}.svg">
-      </div>
-    </div>
-  `);
-  jQuery("#chat-history").scrollTop(jQuery("#chat-history").prop("scrollHeight"));
+  addLike(data);
 });
 
 socket.on("typing", function(data) {
@@ -292,12 +254,15 @@ function getOrCreateLikesDiv(msgId) {
       <div class="msg-likes">
         <div class="icon-heart">
           <div class="icon">
-            <i unselectable class="fa-heart"></i>
+            <i class="unselectable fa-heart"></i>
           </div>
         </div>
       </div>
     `);
-    likesDiv =  msgDiv.children(".msg-likes");
+    likesDiv = msgDiv.children(".msg-likes");
+    likesDiv.children(".icon-heart").click(e => {
+      likeMessage(messages[msgId]);
+    });
   }
   return likesDiv;
 }
@@ -308,6 +273,48 @@ function likeMessage(msg) {
       msgId: msg.id
     });
   }
+}
+
+function addLike(data) {
+  if (!users.hasOwnProperty(data.userId)) {
+    console.warn("Recieved like from unknown user " + data.userId + " for message with id " + data.msgId);
+    return;
+  } else if (!messages.hasOwnProperty(data.msgId)) {
+    console.warn("User " + data.userId + " tried to like unknown message " + data.msgId);
+    return;
+  }
+  var msg = messages[data.msgId];
+  msg.likes[data.userId] = {
+    userId: data.userId,
+    timestamp: data.timestamp
+  };
+
+  var msgDiv = jQuery("#msg-" + msg.id).children(".msg-txt").first();
+  var likesDiv = getOrCreateLikesDiv(msg.id);
+  var heart = likesDiv.children(".icon-heart").first();
+  var heartIcon = heart.children(".icon").first().children(".fa-heart").first();
+  if (msg.likes.hasOwnProperty(userId)) {
+    heart.addClass("heart-full");
+    heart.removeClass("heart-empty");
+
+    heartIcon.addClass("fas");
+    heartIcon.removeClass("far");
+  } else {
+    heart.addClass("heart-empty");
+    heart.removeClass("heart-full");
+
+    heartIcon.addClass("far");
+    heartIcon.removeClass("fas");
+  }
+
+  likesDiv.first().append(`
+    <div class="icon-heart unselectable">
+      <div class="icon unselectable">
+        <img class="unselectable" src="img/${users[data.userId].icon}.svg">
+      </div>
+    </div>
+  `);
+  jQuery("#chat-history").scrollTop(jQuery("#chat-history").prop("scrollHeight"));
 }
 
 function addMessage(msg) {
@@ -322,7 +329,7 @@ function addMessage(msg) {
     <div class="msg-container" id="msg-${msg.id}">
       <div class="icon-name">
         <div class="icon">
-          <img unselectable src="${"img/" + users[msg.userId].icon + ".svg"}">
+          <img class="unselectable" src="${"img/" + users[msg.userId].icon + ".svg"}">
         </div>
       </div>
       <div class="msg-txt message${ msg.isSystemMsg ? "-system" : "-txt" }">
@@ -339,4 +346,11 @@ function addMessage(msg) {
   jQuery("#chat-history").scrollTop(jQuery("#chat-history").prop("scrollHeight"));
 
   messages[msg.id] = msg;
+
+  for (like in msg.likes) {
+    addLike({
+      msgId: msg.id,
+      userId: like
+    });
+  }
 }
