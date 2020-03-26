@@ -13,6 +13,9 @@ var io = require("socket.io")(http);
 // An array of default usernames
 const usernames = ["James", "Hannah", "Tracy", "Bob", "Troy", "George", "Eve"];
 
+// Used to create timestamps
+const date = new Date();
+
 /**
  * User {
  *   id: hash
@@ -27,7 +30,11 @@ var users = {}
  *   id: hash
  *   userId: hash
  *   content: string
- *   likes: hash[]
+ *   time: timestamp (date.getTime())
+ *   likes: hash (key) {
+ *     userId: hash
+ *     time: timestamp
+ *   }
  * }
  **/
 var messages = {}
@@ -53,7 +60,8 @@ function createMessage(userId, content, isSystemMsg) {
     userId: userId,
     content: content,
     isSystemMsg: isSystemMsg,
-    likes: []
+    timestamp: date.getTime(),
+    likes: {}
   };
 
   messages[messageId] = message;
@@ -133,6 +141,34 @@ io.on("connection", function(socket) {
     broadcastMessage(message);
 
     callback();
+  });
+
+  socket.on("likeMessage", function(data) {
+    if (!users.hasOwnProperty(data.userId)) {
+      console.warn("Recieved like from invalud userId " + data.userId + " for message with id " + data.msgId);
+      return;
+    } else if (!messages.hasOwnProperty(data.msgId)) {
+      console.warn("User " + data.userId + " tried to like invalid message " + data.msgId);
+      return;
+    }
+    var timestamp = date.getTime();
+    var msg = messages[data.msgId];
+    if (msg.likes.hasOwnProperty(data.userId)) {
+      var name = users[data.userId].name;
+      console.log("User " + name + " tried to like a message they had already liked (with " + Object.keys(msg.likes).length + ") total likes", msg.likes);
+      return;
+    }
+    msg.likes[data.userId] = {
+      userId: data.userId,
+      timestamp: timestamp
+    };
+    for (var user in users) {
+      users[user].socket.emit("likeMessage", {
+        msgId: data.msgId,
+        userId: data.userId,
+        timestamp: timestamp
+      });
+    }
   });
 
   socket.on("changeUsername", function(data) {

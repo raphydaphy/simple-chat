@@ -1,9 +1,10 @@
 <!doctype html>
 <head>
-  <title>Simple Chat</title>
+  <title>Netflix Chat</title>
   <link href="main.css" rel="stylesheet" type="text/css" />
   <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
   <script src="./socket.io/socket.io.js"></script>
+  <script src="https://kit.fontawesome.com/d2e8fae07c.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="main-page"></div>
@@ -17,13 +18,12 @@
         <ul id="chat-menu-container">
           <li id="function-title">
             <div id="title">
-              <h1>Netflix Party</h1>
+              <h1>Netflix Chat</h1>
             </div>
           </li>
           <li id="function-user">
             <div id="link-icon">
-              <!-- ${chrome.runtime.getURL("img/Link.svg")} -->
-              <img src='img/Link.svg'>
+              <i unselectable class="fas fa-link"></i>
               <input id="share-url" type="text" readonly="true" autocomplete="off" autofocus style="display:none;" />
             </div>
             <a id="user-icon">
@@ -39,8 +39,7 @@
               <p>The url link goes here.</p>
             </div>
             <div id="chat-link-icon">
-              <!-- ${chrome.runtime.getURL("img/Link.svg")} -->
-              <img src='img/Link.svg'>
+              <i unselectable class="fas fa-link"></i>
             </div>
           </div>
         </div>
@@ -80,12 +79,12 @@
                 <div class="np-btn">
                   <a>
                     <!--  ${chrome.runtime.getURL("img/edit.svg")} -->
-                    <img src='img/edit.svg' />
+                    <i unselectable class="fas fa-pen"></i> 
                   </a>
                 </div>
               </div>
               <div class="nickname-input row-two">
-                <input id="nickname-edit" type="text" placeholder='${userSettings.userNickname ? userSettings.userNickname : "Add a nickname"}'/>
+                <input id="nickname-edit" type="text" placeholder='Add a nickname!'/>
               </div>
             </div>
           </div>
@@ -110,6 +109,7 @@
         </div>
         <!-- <div id="chat-gradient"></div> -->
         <div id="chat-history">
+
         </div>
       </div>
 

@@ -1,5 +1,4 @@
 body {
-  margin: 0;
   background-color: #313233;
 }
 
@@ -7,27 +6,6 @@ body {
   width: 100%;
 }
 
-#chat-wrapper {
-  width: ${chatSidebarWidth}px;
-  height: 100%;
-  background: #1a1a1a;
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  cursor: auto;
-  user-select: text;
-  -webkit-user-select: text;
-  z-index: 9999999999;
-}
-
-#chat-wrapper #chat-container {
-  height: 100%;
-  position: relative;
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-}
 
 @import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900");
 /* line 34, ../sass/base/_settings.scss */
@@ -151,19 +129,20 @@ button:hover {
 /* line 37, ../sass/layout/_chatlayout.scss */
 #chat-wrapper #chat-container #chat-header-container #chat-menu-container #function-user #link-icon {
   width: 50%;
-  height: 100%;
   display: flex;
   flex-flow: wrap row;
   justify-content: flex-end;
+  align-items: center;
 }
 /* line 41, ../sass/layout/_chatlayout.scss */
-#chat-wrapper #chat-container #chat-header-container #chat-menu-container #function-user #link-icon img {
+#chat-wrapper #chat-container #chat-header-container #chat-menu-container #function-user #link-icon i {
   transform: scale(1);
   transition: 0.3s ease;
   width: 18px;
+  color: #f2f2f2;
 }
 /* line 45, ../sass/layout/_chatlayout.scss */
-#chat-wrapper #chat-container #chat-header-container #chat-menu-container #function-user #link-icon img:hover {
+#chat-wrapper #chat-container #chat-header-container #chat-menu-container #function-user #link-icon i:hover {
   transform: scale(1.15);
   cursor: pointer;
 }
@@ -283,12 +262,19 @@ button:hover {
   flex-flow: wrap row;
   justify-content: space-between;
   align-items: flex-start;
-  padding-bottom: 11px;
+  padding: 6px 0;
   width: 100%;
 }
+
+/* Edit: Message container mouseover colors */
+#chat-history-container #chat-history .msg-container:hover {
+  background-color: #262626;
+}
+
 /* line 76, ../sass/modules/_msg.scss */
 #chat-history-container #chat-history .msg-container .icon-name {
   width: 13%;
+  padding-left: 5px;
 }
 /* line 78, ../sass/modules/_msg.scss */
 #chat-history-container #chat-history .msg-container .icon-name .icon {
@@ -300,6 +286,42 @@ button:hover {
   width: 100%;
   height: 100%;
 }
+
+/* Edit: heart icon */
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes {
+  display: flex;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .icon-heart {
+  width: 7%;
+  padding: 1%;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .icon-heart .icon {
+  width: 100%;
+  height: 100%;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .icon-heart .icon img {
+  width: 100%;
+  height: 100%;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .icon-heart .icon i {
+  transition: 0.3s ease;
+  width: 100%;
+  height: 100%;
+  color: #f2f2f2;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .heart-full .icon i {
+  color: #d43535;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .icon-heart .icon i:hover {
+  cursor: pointer;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .heart-empty .icon i:hover {
+  color: #d9adad;
+}
+#chat-history-container #chat-history .msg-container .msg-txt .msg-likes .heart-empty .icon i:active {
+  color: #d17979;
+}
+
 /* line 85, ../sass/modules/_msg.scss */
 #chat-history-container #chat-history .msg-container .msg-txt {
   display: flex;
@@ -479,9 +501,10 @@ button:hover {
   cursor: default;
 }
 /* line 55, ../sass/modules/_setting.scss */
-#setting-edit .section-c .section-c-inner .nickname-section .nickname-wrap .np-btn a img {
+#setting-edit .section-c .section-c-inner .nickname-section .nickname-wrap .np-btn a i {
   width: 13.5%;
   opacity: 0.5;
+  color: #f2f2f2;
 }
 /* line 62, ../sass/modules/_setting.scss */
 #setting-edit .section-c .section-c-inner .nickname-section .nickname-input {
@@ -596,5 +619,5 @@ button:hover {
   -webkit-filter: drop-shadow(0px 8px 10px rgba(0, 0, 0, 0.6));
   -moz-filter: drop-shadow(0px 8px 10px rgba(0, 0, 0, 0.6));
   transform: scale(1);
-  curosr: pointer;
+  cursor: pointer;
 }
