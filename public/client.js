@@ -9,6 +9,9 @@ var icons = ["Batman", "DeadPool", "CptAmerica", "Wolverine", "IronMan", "Goofy"
  * User {
  *   id: hash
  *   name: string
+ *   icon: string
+ *   typing: boolean
+ *   active: boolean
  * }
  **/
 var users = {};
@@ -18,7 +21,11 @@ var users = {};
  *   id: hash
  *   userId: hash
  *   content: string
- *   likes: hash[]
+ *   time: timestamp (date.getTime())
+ *   likes: hash (key) {
+ *     userId: hash
+ *     time: timestamp
+ *   }
  * }
  **/
  var messages = {};
@@ -46,8 +53,12 @@ function changeIcon(icon) {
   jQuery(".chat-settings-container").show();
 }
 
+function getIconPath(icon) {
+  return "img/" + icon + ".svg";
+}
+
 function refreshIcon() {
-  var iconPath = "img/" + users[userId].icon + ".svg";
+  var iconPath = getIconPath(users[userId].icon);
   jQuery("#user-icon").children("img").attr("src", iconPath);
   jQuery(".user-icon").children("img").attr("src", iconPath);
 }
@@ -55,7 +66,7 @@ function refreshIcon() {
 function createIconButton(i) {
   var iconButton = jQuery("#icon-holder").append(`
     <a class="image-button">
-      <img class="unselectable img-class" src="${"img/" + icons[i] + ".svg"}" id="user-icon-${icons[i]}">
+      <img class="unselectable img-class" src="${getIconPath(icons[i])}" id="user-icon-${icons[i]}">
     </a>
   `);
 
@@ -310,7 +321,7 @@ function addLike(data) {
   likesDiv.first().append(`
     <div class="icon-heart unselectable">
       <div class="icon unselectable">
-        <img class="unselectable" src="img/${users[data.userId].icon}.svg">
+        <img class="unselectable" src="${getIconPath(users[data.userId].icon)}">
       </div>
     </div>
   `);
@@ -329,7 +340,7 @@ function addMessage(msg) {
     <div class="msg-container" id="msg-${msg.id}">
       <div class="icon-name">
         <div class="icon">
-          <img class="unselectable" src="${"img/" + users[msg.userId].icon + ".svg"}">
+          <img class="unselectable" src="${getIconPath(users[msg.userId].icon)}">
         </div>
       </div>
       <div class="msg-txt message${ msg.isSystemMsg ? "-system" : "-txt" }">

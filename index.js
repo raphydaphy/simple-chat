@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-const fs = require("fs");
 const path = require("path");
 
 var http = require("http").createServer(app);
@@ -26,6 +25,7 @@ const date = new Date();
  *   icon: string
  *   typing: boolean
  *   active: boolean
+ *   sessionId: hash
  *   socket: <websocket>
  * }
  **/
@@ -44,6 +44,9 @@ var users = {}
  * }
  **/
 var messages = {}
+
+/* not properly implemented yet */
+var sessions = {}
 
 // generate a random ID with 64 bits of entropy
 function makeId() {
@@ -90,8 +93,15 @@ app.get("/", function(req, res) {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
+// TODO: persistant user storage
+app.get("/create-user-id", function(req, res) {
+  res.setHeader('Content-Type', 'text/plain');
+  res.send(makeId());
+})
+
 app.get("/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "public", req.path));
+  var filePath = path.join(__dirname, "public", req.path);
+  res.sendFile(filePath); 
 });
 
 /****************************
@@ -112,6 +122,7 @@ io.on("connection", function(socket) {
     icon: userIcon,
     typing: false,
     active: true,
+    sessionId: "",
     socket: socket
   };
 
@@ -145,6 +156,108 @@ io.on("connection", function(socket) {
   });
 
   console.log("User " + userId + " connected and assigned the name " + userName + " and icon " + userIcon);
+
+  // TODO: sessions!!
+  socket.on("createSession", function(data, callback) {
+    var controlLock = data.controlLock;
+    var videoId = data.videoId;
+    var videoService = data.videoService;
+    var syncFromEnd = data.syncFromEnd;
+    var videoDuration = data.videoDuration;
+    var permID = data.permID; // replace with userID ?
+
+    var sessionId = makeId();
+    while (sessions.hasOwnProperty(sessionId)) {
+      sessionId = makeId();
+    }
+    var now = new Date();
+
+    sessions[sessionId] = {
+      id: sessionId,
+      lastKnownTime: 0,
+      lastKnownTimeUpdatedAt: now,
+      videoId: videoId,
+      state: "paused",
+      ownerId: controlLock ? userId : null,
+      users: [
+        userId
+      ]
+    };
+
+    users[userId].sessionId = sessionId;
+
+    callback({
+      lastKnownTime: 0,
+      lastKnownTimeUpdatedAt: now,
+      sessionId: sessionId,
+      state: "paused"
+    });
+  });
+
+  socket.on("joinSession", function(data, callback) {
+    var sessionId = data.sessionId;
+    if (!sessions.hasOwnProperty(sessionId)) {
+      callback({
+        errorMessage: "Invalid session ID!"
+      });
+      return;
+    }
+    var session = sessions[sessionId];
+    users[userId].sessionId = sessionId;
+    session.users.push(userId);
+    callback({
+      errorMessage: null,
+      videoId: session.videoId,
+      lastKnownTime: session.lastKnownTime,
+      lastKnownTimeUpdatedAt: session.lastKnownTimeUpdatedAt.getTime(),
+      ownerId: session.ownerId,
+      state: session.state
+    });
+  });
+
+  socket.on("updateSession", function(data, callback) {
+    if (!sessions.hasOwnProperty(users[userId].sessionId)) {
+      callback({
+        errorMessage: "Invalid session!"
+      });
+      return;
+    }
+    var lastKnownTime = data.lastKnownTime;
+    var lastKnownTimeUpdatedAt = data.lastKnownTimeUpdatedAt;
+    var state = data.state;
+    var lastKnownTimeRemaining = data.lastKnownTimeRemaining;
+    var lastKnownTimeRemainingText = data.lastKnownTimeRemainingText;
+    var videoDuration = data.videoDuration;
+    var bufferingState = data.bufferingState;
+
+    var session = sessions[users[userId].sessionId];
+
+    session.lastKnownTime = lastKnownTime;
+    session.lastKnownTimeUpdatedAt = new Date(data.lastKnownTimeUpdatedAt);
+    session.state = state;
+
+    for (var user in users) {
+      if (user != userId) {
+        users[user].socket.emit("update", {
+          lastKnownTime: lastKnownTime,
+          lastKnownTimeUpdatedAt: session.lastKnownTimeUpdatedAt.getTime(),
+          state: state
+        });
+      }
+    }
+    callback({
+      errorMessage: null
+    });
+  });
+
+  socket.on("updateSessionFromEnd", function(data, callback) {
+
+  });
+
+  socket.on("leaveSession", function(data, callback) {
+    users[userId].sessionId = "";
+    callback();
+  });
 
   socket.on("sendMessage", function(data, callback) {
     var message = createMessage(userId, data.content, data.isSystemMsg);
@@ -242,6 +355,10 @@ io.on("connection", function(socket) {
       users = {};
       console.log("All users have left. Resetting chat...");
     }
+  });
+
+  socket.on("getServerTime", function(data, callback) {
+    callback(date.getTime());
   });
 });
 
